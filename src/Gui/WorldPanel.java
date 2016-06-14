@@ -1,9 +1,6 @@
 package Gui;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 import javax.media.j3d.AmbientLight;
 import javax.media.j3d.Background;
@@ -18,7 +15,6 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 import javax.vecmath.Vector3f;
 
-import D3.Block;
 import D3.World;
 
 import com.sun.j3d.utils.behaviors.mouse.MouseRotate;
@@ -28,28 +24,28 @@ import com.sun.j3d.utils.universe.SimpleUniverse;
 import com.sun.j3d.utils.universe.ViewingPlatform;
 
 @SuppressWarnings("serial")
-public class UniversePanel extends Canvas3D
+public class WorldPanel extends Canvas3D
 {
-	private SimpleUniverse universe;
-	private BranchGroup scene;
-	private World world;
+	private SimpleUniverse _universe;
+	private BranchGroup _scene;
+	private World _world;
 
-	public UniversePanel()
+	public WorldPanel(Map<Character, Character> beliefs)
 	{
 		super(SimpleUniverse.getPreferredConfiguration());
-		universe = new SimpleUniverse(this);
-		world = new World();
-		scene = createSceneGraph(world);
+		_universe = new SimpleUniverse(this);
+		_world = new World(beliefs);
+		_scene = CreateSceneGraph(_world);
 
 		//universe.getViewingPlatform().setNominalViewingTransform();
 
-		initUserPosition();        
-		orbitControls(this);
+		InitUserPosition();        
+		OrbitControls(this);
 
-		universe.addBranchGraph(scene);
+		_universe.addBranchGraph(_scene);
 	}
 
-	private BranchGroup createSceneGraph(World world) {
+	private BranchGroup CreateSceneGraph(World world) {
 		// Create the root of the branch graph
 		BranchGroup objRoot = new BranchGroup();
 
@@ -108,33 +104,28 @@ public class UniversePanel extends Canvas3D
 		return objRoot;
 	}
 
-	private void orbitControls(Canvas3D c)
-	/* OrbitBehaviour allows the user to rotate around the scene, and to
-	     zoom in and out.
-	 */
+	private void OrbitControls(Canvas3D c)	
 	{
-		OrbitBehavior orbit = 
-				new OrbitBehavior(c, OrbitBehavior.REVERSE_ALL);
-		BoundingSphere bounds =
-				new BoundingSphere(new Point3d(0.0, 0.0, 0.0), 100.0);
+		//OrbitBehaviour allows the user to rotate around the scene, and to zoom in and out.
+		OrbitBehavior orbit = new OrbitBehavior(c, OrbitBehavior.REVERSE_ALL);
+		BoundingSphere bounds =	new BoundingSphere(new Point3d(0, 0, 0), 100);
 		orbit.setSchedulingBounds(bounds);
 
-		ViewingPlatform vp = universe.getViewingPlatform();
+		ViewingPlatform vp = _universe.getViewingPlatform();
 		vp.setViewPlatformBehavior(orbit);	    
 	}
 
-	private void initUserPosition()
-	/* Set the user's initial viewpoint using lookAt()  */
+	private void InitUserPosition()
 	{
-		ViewingPlatform vp = universe.getViewingPlatform();
+		//Set the user's initial viewpoint using lookAt()
+		ViewingPlatform vp = _universe.getViewingPlatform();
 		TransformGroup steerTG = vp.getViewPlatformTransform();
 
 		Transform3D t3d = new Transform3D( );
 		steerTG.getTransform( t3d );
 
 		// args are: viewer posn, where lokking, up direction
-		t3d.lookAt( new Point3d(0,5,10), new Point3d(0,0,-5), 
-				new Vector3d(0,1,0));
+		t3d.lookAt( new Point3d(0,5,10), new Point3d(0,0,-5), new Vector3d(0,1,0));
 		t3d.invert();
 
 		steerTG.setTransform(t3d);
@@ -142,80 +133,39 @@ public class UniversePanel extends Canvas3D
 
 	public void Up(Character label)
 	{
-		world.Up(label);
+		_world.MoveUp(label);
 	}
 
 	public void Down(Character label)
 	{
-		world.Down(label);
+		_world.MoveDown(label);
 	}
 
 	public void Left(Character label)
 	{
-		world.Left(label);
+		_world.MoveLeft(label);
 	}
 
 	public void Right(Character label)
 	{
-		world.Right(label);
+		_world.MoveRight(label);
 	}
 
-	public void PickUp(String cmd)
+	public void Move(String labels)
 	{
-		world.PickUp(cmd.charAt(0));
-	}
-
-	public void PutDown(String cmd)
-	{
-		if (cmd.charAt(1) == ' ')
-			world.PutDown(cmd.charAt(0));
+		if (labels.length() < 2)
+			_world.Stack(labels.charAt(0), null);
 		else
-			world.PutDown(cmd.charAt(0), cmd.charAt(1));
-	}
-
-	public void getBeliefs(HashSet<Logic.Block> beliefs, Logic.Block inHand)
-	{
-		beliefs.clear();
-		inHand = null;
-		Map<Character,Block> blocks = world.getBlocks();
-
-		for (Entry<Character,Block> entry : blocks.entrySet())
-			beliefs.add(new Logic.Block(entry.getKey()));
-		for (Logic.Block block : beliefs)
-		{
-			Block A = blocks.get(block.getID());
-			Block B = world.getUnder(A);
-			if (B != null)
-			{
-				if (!A.equals(B))
-				{
-					for (Logic.Block under : beliefs)
-						if (under.getID() == B.getID())
-						{
-							block.PutOn(under);
-							break;
-						}
-				}
-				else
-					inHand = block;
-			}
-		}
-		beliefs.remove(inHand);
-	}
-
-	public Set<Character> getLabels()
-	{
-		return world.getBlocks().keySet();
+			_world.Stack(labels.charAt(0), labels.charAt(1));
 	}
 	
-	public void Memorize() 
+	public void GetConfiguration(Map<Character, Character> config)
 	{
-		world.Memorize();
+		_world.GetConfiguration(config);
 	}
 	
-	public void Restore() 
+	public void DispalyConfiguration(Map<Character, Character> config) 
 	{
-		world.Restore();
+		_world.DisplayConfiguration(config);
 	}
-
 }

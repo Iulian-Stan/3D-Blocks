@@ -11,22 +11,22 @@ import com.sun.j3d.utils.geometry.Box;
 
 public class Block extends TransformGroup 
 {
-	public static final float Size = 1.0f;
+	private static final float SIZE = 1f;
+	public static final float SIZE2 = SIZE * 2;
 	
-	private static Color3f red = new Color3f(1.0f, 0.0f, 0.0f);
-	private static Color3f black = new Color3f(0.0f, 0.0f, 0.0f);
-	private static Color3f white = new Color3f(1.0f, 1.0f, 1.0f);
+	private static final Color3f RED = new Color3f(1, 0, 0);
+	private static final Color3f BLACK = new Color3f(0, 0, 0);
+	private static final Color3f WHITE = new Color3f(1, 1, 1);
 	
-	private static Material material = new Material(red, black, red, white, 64);
+	private static Material material = new Material(RED, BLACK, RED, WHITE, 64);
 	private static Appearance appearance = new Appearance();
 
 	static {appearance.setMaterial(material);}
 	
-	private static Transform3D trans = new Transform3D();
-	private Vector3f vector = new Vector3f();
-
-	private Label label;
-	private Box box;
+	private static Transform3D _trans = new Transform3D();
+	private Vector3f _vector = new Vector3f();
+	private Label _label;
+	private Box _box;
 	
 	public Block(Character letter, float x, float y)
 	{
@@ -35,87 +35,54 @@ public class Block extends TransformGroup
 		setCapability(TransformGroup.ALLOW_TRANSFORM_READ);
 		setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
 		
-		box = new Box(Size, Size, Size, appearance);
-		label = new Label(letter);
+		_box = new Box(SIZE, SIZE, SIZE, appearance);
+		_label = new Label(letter);
 		
-		addChild(box);
-		addChild(label);
+		addChild(_box);
+		addChild(_label);
 	
-		setPosition(x, y);
+		SetPosition(x, y);
 	}
 	
-	public void setPosition(float x, float y)
+	public void SetPosition(float x, float y)
 	{
-		vector.set(x,y,0);
-		trans.set(vector);
-		setTransform(trans);
+		_vector.set(x, y, 0);
+		_trans.set(_vector);
+		setTransform(_trans);
 	}
 	
-	public void setPosition(Vector3f vect)
+	public void SetPosition(Vector3f vect)
 	{
-		vector.set(vect.x, vect.y, 0);
-		trans.set(vector);
-		setTransform(trans);
+		_vector.set(vect.x, vect.y, 0);
+		_trans.set(_vector);
+		setTransform(_trans);
 	}
 	
-	public void getPosition(Vector3f vect)
+	//store block position in a vector
+	public void StorePosition(Vector3f vect)
 	{
-		vect.set(vector.x, vector.y, 0);
+		vect.set(_vector.x, _vector.y, 0);
 	}
-	
-	public void Peek(Vector3f vect, float dx, float dy)
-	{
-		vect.set(vector.x + dx, vector.y + dy, 0);
-	}
-	
+
 	public void Move(float dx, float dy)
 	{
-		vector.set(vector.x + dx, vector.y + dy ,0);
-		trans.set(vector);
-		setTransform(trans);
+		_vector.set(_vector.x + dx, _vector.y + dy, 0);
+		_trans.set(_vector);
+		setTransform(_trans);
 	}
 	
-	public float getX()
+	public float GetX()
 	{
-		return vector.getX();
+		return _vector.getX();
 	}
 	
-	public float getY()
+	public float GetY()
 	{
-		return vector.getY();
+		return _vector.getY();
 	}
 	
-	public Character getID()
+	public Character GetID()
 	{
-		return label.getID();
-	}
-	
-	public boolean isOnPosition(float x, float y)
-	{
-		return vector.x == x && vector.y == y;
-	}
-	
-	public boolean isOnPosition(Vector3f vect)
-	{
-		return isOnPosition(vect.x, vect.y);
-	}
-	
-	public boolean isUnder(Block block)
-	{
-		return isOnPosition(block.getX(), block.getY() - 2 * Block.Size);
-	}
-	
-	@Override
-	public boolean equals(Object obj)
-	{
-		if (obj == this) {
-			return true;
-		}
-		if (obj == null || obj.getClass() != this.getClass()) {
-			return false;
-		}
-
-		Block block = (Block) obj;
-		return label.equals(block.label);
+		return _label.GetID();
 	}
 }

@@ -3,7 +3,6 @@ package Gui;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Set;
 
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
@@ -25,21 +24,21 @@ public class ControlPanel extends JPanel
 	JButton rightButton = new JButton("\u21D2");
 	
 
-	JButton beliefsButton = new JButton("Initial");
-	JButton desiresButton = new JButton("Final");
+	JButton getBeliefsButton = new JButton("Show Initial");
+	JButton getDesiresButton = new JButton("Show Final");
 
-	JButton resetButton = new JButton("Reset");
-	JButton memorizeButton = new JButton("Memorize");
+	JButton setBeliefsButton = new JButton("New Initial");
+	JButton setDesiresButton = new JButton("New Final");
 	
 	JButton runButton = new JButton("Run");
 	JButton stopButton = new JButton("Stop");
 
-	public ControlPanel(final ActionListener listener, Set<Character> labels)
+	public ControlPanel(final ActionListener listener, Character[] labels)
 	{
 		super();
 		setLayout(new GridLayout(6, 2));
 
-		addModel = new DefaultComboBoxModel<Character>(labels.toArray(new Character[0]));
+		addModel = new DefaultComboBoxModel<Character>(labels);
 		boxText.setModel(addModel);
 		
 		add(boxLabel);
@@ -54,15 +53,15 @@ public class ControlPanel extends JPanel
 		rightButton.addActionListener(new ButtonListener(listener, "right"));	
 		add(rightButton);
 
-		beliefsButton.addActionListener(new ButtonListener(listener, "belief"));	
-		add(beliefsButton);
-		desiresButton.addActionListener(new ButtonListener(listener, "desire"));	
-		add(desiresButton);
+		getBeliefsButton.addActionListener(new ButtonListener(listener, "get beliefs"));	
+		add(getBeliefsButton);
+		getDesiresButton.addActionListener(new ButtonListener(listener, "get desires"));	
+		add(getDesiresButton);
 		
-		resetButton.addActionListener(new ButtonListener(listener, "reset"));	
-		add(resetButton);
-		memorizeButton.addActionListener(new ButtonListener(listener, "memorize"));	
-		add(memorizeButton);
+		setBeliefsButton.addActionListener(new ButtonListener(listener, "set beliefs"));	
+		add(setBeliefsButton);
+		setDesiresButton.addActionListener(new ButtonListener(listener, "set desires"));	
+		add(setDesiresButton);
 		
 		runButton.addActionListener(new ButtonListener(listener, "run"));	
 		add(runButton);

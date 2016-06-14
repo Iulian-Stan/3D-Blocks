@@ -1,13 +1,16 @@
 package Logic;
 
+import java.util.Map;
+
 public abstract class Action {
-	protected Block A = null;
-	protected Block B = null;
+	protected Character A = null;
+	protected Character B = null;
 	
-	public Action(Block A){ this.A = new Block(A); }	
+	public Action(Character A){ this.A = A; }	
 	
-	public Action(Block A, Block B){ this(A); this.B = new Block(B); }	
+	public Action(Character A, Character B){ this(A); this.B = B; }	
 	
 	public abstract boolean isPossible();
-	public abstract void Execute();
+	public abstract void Execute(Gui.Core listener, Map<Character, Character> config);
+	public abstract Map<Character, Character> Simulate(Map<Character, Character> config);
 }

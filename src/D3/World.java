@@ -1,248 +1,292 @@
 package D3;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.media.j3d.Transform3D;
 import javax.media.j3d.TransformGroup;
 import javax.vecmath.Color3f;
-import javax.vecmath.Point3f;
 import javax.vecmath.Vector3f;
 
 public class World extends TransformGroup
 {
-	private final static int FLOOR_LEN = 20;
-	private final static int FLOOR_WID = 6;
+	private final static int FLOOR_WID = 3 * (int)Block.SIZE2;
+	private final static Color3f BLUE = new Color3f(0.0f, 0.0f, 1.0f);
+	private final static Color3f GREEN = new Color3f(1.0f, 1.0f, 0.0f);
 
-	private final static Color3f blue = new Color3f(0.0f, 0.0f, 1.0f);
-	private final static Color3f green = new Color3f(1.0f, 1.0f, 0.0f);
+	private Transform3D _trans = new Transform3D();
+	private Vector3f _vector = new Vector3f();
+	private Set<Character> _processedLabels = new HashSet<Character>();
 
-	private Transform3D trans = new Transform3D();
-	private Vector3f vector = new Vector3f();
+	//current world blocks
+	private Map<Character, Block> _blocks = new HashMap<Character, Block>();
 
-	private Map<Character, Block> blocks = new HashMap<Character, Block>();
-	private Map<Character, Vector3f> memory = new HashMap<Character, Vector3f>();
-
-	public World()
+	public World(Map<Character ,Character> beliefs)
 	{
 		super();
 
 		setCapability(TransformGroup.ALLOW_TRANSFORM_READ);
 		setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
 
-		vector.set(0.0f, 0.0f, 0.0f);
-		trans.set(vector);
-		setTransform(trans);
+		_vector.set(0.0f, 0.0f, 0.0f);
+		_trans.set(_vector);
+		setTransform(_trans);
 
-		AddFloor();
+		AddFloor(beliefs.keySet().size() * (int)Block.SIZE2);
 
-		AddBlocks();
+		AddBlocks(beliefs);
 	}
 
-	private void AddBlocks()
+	private void AddTile(boolean isBlue, int x, int z)
 	{
-		Block A;
-		A = addBlock('F', -4);
-		A = addBlock('A', A);
-		A = addBlock('C', A);
-
-		A = addBlock('B', 0);
-		A = addBlock('D', A);
-		A = addBlock('G', A);
-		
-
-		A = addBlock('E', 4);
-		A = addBlock('H', A);
+		FloorTile floorTile = new FloorTile((isBlue) ? BLUE : GREEN, x, z);
+		addChild(floorTile);
 	}
 
-	private void AddFloor()
+	private void AddFloor(int floorLength)
 	{
 		boolean isBlue;
 		for(int z=-FLOOR_WID/2; z <= (FLOOR_WID/2)-1; z++) {
 			isBlue = (z%2 == 0)? true : false;  
-			for(int x=-FLOOR_LEN/2; x <= (FLOOR_LEN/2)-1; x++) {
-				createTile(x, z, isBlue);
+			for(int x=-floorLength/2; x <= (floorLength/2)-1; x++) {
+				AddTile(isBlue, x, z);
 				isBlue = !isBlue;
+			}
+		}
+	} 
+
+	private void AddBlock(Character label, float x, float y)
+	{
+		Block block = new Block(label, x, y);
+		Vector3f vector = new Vector3f();
+		block.StorePosition(vector);
+		_blocks.put(label, block);
+		addChild(block);
+	}
+
+	private void AddBlock(Character label, Character base)
+	{
+		Block baseBlock = _blocks.get(base);
+		Block block = new Block(label, baseBlock.GetX(), baseBlock.GetY() + Block.SIZE2);
+		Vector3f vector = new Vector3f();
+		block.StorePosition(vector);
+		_blocks.put(label, block);
+		addChild(block);
+	}
+
+	private void AddBlock(Character label, Map<Character, Character> beliefs, IntegerObj column) 
+	{
+		if (_processedLabels.contains(label))
+			return;
+		Character base = beliefs.get(label);
+		if (base == null)
+		{
+			AddBlock(label, column.value * Block.SIZE2, 1);
+			_processedLabels.add(label);
+			++column.value;
+			return;
+		}
+		AddBlock(base, beliefs, column);
+		_processedLabels.add(base);
+		AddBlock(label, base);
+		_processedLabels.add(label);
+	}
+
+	private void AddBlocks(Map<Character, Character> beliefs)
+	{
+		Set<Character> labels = beliefs.keySet();
+		Integer columns = 0;
+		IntegerObj column;
+		for (Character label : labels)
+			if (beliefs.get(label) == null)
+				++columns;
+		column = new IntegerObj(-columns / 2);
+		_processedLabels.clear();
+		for (Character label : labels)
+			AddBlock(label, beliefs, column);
+	}
+
+	public Map<Character,Block> GetBlocks()
+	{
+		return _blocks;
+	}
+
+	public Block GetBlock(Character label)
+	{
+		return _blocks.get(label);
+	}
+
+	public Block GetBlock(float x, float y)
+	{
+		for (Block block : _blocks.values())
+		{
+			if (block.GetX() == x && block.GetY() == y)
+				return block;
+		}
+		return null;
+	}
+
+	public void GetConfiguration(Map<Character, Character> config)
+	{		
+		Set<Character> labels = config.keySet();
+		for (Character label : labels)
+		{
+			Block block = GetBlock(label);
+			Block baseBlock = GetBlock(block.GetX(), block.GetY() - Block.SIZE2);
+			config.put(label, baseBlock == null ? null : baseBlock.GetID());
+		}
+	}
+
+	public void DisplayConfiguration(Map<Character, Character> config)
+	{
+		Set<Character> labels = config.keySet();
+		Integer columns = 0;
+		IntegerObj column;
+		for (Character label : labels)
+			if (config.get(label) == null)
+				++columns;
+		column = new IntegerObj(-columns / 2);
+		_processedLabels.clear();		
+		for (Character label : labels)
+			SetBlock(label, config, column);
+	}
+
+	private void SetBlock(Character label, Map<Character, Character> config, IntegerObj column) 
+	{
+		if (_processedLabels.contains(label))
+			return;		
+		Block block = _blocks.get(label);
+		Character base = config.get(label);
+		if (base == null)
+		{
+			block.SetPosition(column.value * Block.SIZE2, 1);
+			_processedLabels.add(label);
+			++column.value;
+			return;
+		}
+		SetBlock(base, config, column);
+		_processedLabels.add(base);
+		SetBlock(block, base);
+		_processedLabels.add(label);
+	}
+
+	private void SetBlock(Block block, Character base)
+	{
+		Block baseBlock = _blocks.get(base);
+		block.SetPosition(baseBlock.GetX(), baseBlock.GetY() + Block.SIZE2);
+	}
+
+	class IntegerObj {
+		int value;
+		IntegerObj(int val) {
+			this.value = val;
+		}
+	}
+
+	private void MoveBlock(Character label, float dx, float dy)
+	{
+		Block A = _blocks.get(label);
+		A.Move(dx, dy);
+	}
+
+	public void MoveUp(Character label)
+	{
+		MoveBlock(label, 0, Block.SIZE2);
+	}
+
+	public void MoveDown(Character label)
+	{
+		MoveBlock(label, 0, -Block.SIZE2);
+	}
+
+	public void MoveLeft(Character label)
+	{
+		MoveBlock(label, -Block.SIZE2, 0);
+	}
+
+	public void MoveRight(Character label)
+	{
+		MoveBlock(label, Block.SIZE2, 0);
+	}
+
+
+	private void PickUp(Character A)
+	{
+		Block block = _blocks.get(A);
+		float height = 1;
+		for (Block b : _blocks.values())
+			if (b.GetY() > height)
+				height = b.GetY();
+		height += Block.SIZE2;
+		while (block.GetY() < height)
+		{
+			MoveUp(A);
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
 	}
 
-	private void createTile(int x, int z, boolean isBlue)
+	private void PutOn(Character A, Character B)
 	{
-		Point3f p1 = new Point3f(x, 0f, z);
-		Point3f p2 = new Point3f(x+1.0f, 0f, z);
-		Point3f p3 = new Point3f(x+1.0f, 0f, z+1.0f);
-		Point3f p4 = new Point3f(x, 0f, z+1.0f);
-		Color3f col = (isBlue) ? blue : green;
-		addChild( new Floor(p4, p3, p2, p1, col) );
-	} 
-
-	private Block addBlock(Character label, float x, float y)
-	{
-		Block block = new Block(label, x, y);
-		Vector3f vector = new Vector3f();
-		block.getPosition(vector);
-		blocks.put(label, block);
-		memory.put(label, vector);
-		addChild(block);
-		return block;
+		Block block = _blocks.get(A);
+		float height = 1;
+		if (B != null)
+		{
+			Block base = _blocks.get(B);
+			height = base.GetY() + Block.SIZE2;
+		}
+		while (block.GetY() > height)
+		{
+			MoveDown(A);
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
-	private Block addBlock(Character label, float x)
+	private boolean isFreeColumn(float column)
 	{
-		return addBlock(label, x, Block.Size);
-	}
-
-	private Block addBlock(Character label, Block under)
-	{
-		return addBlock(label, under.getX(), under.getY() + 2 * Block.Size);
-	}
-
-	private boolean isFreeSpace(Character A)
-	{
-		float x = blocks.get(A).getX();
-		for (Character B : blocks.keySet())
-			if (A != B && x == blocks.get(B).getX())
+		for (Block block : _blocks.values())
+			if (block.GetX() == column)
 				return false;
 		return true;
 	}
 
-	private boolean Move(Character label, float dx, float dy)
+	private void MoveOver(Character A, Character B)
 	{
-		Block A = blocks.get(label);		
-		A.Peek(vector, dx, dy);
-		if (vector.x >= -(FLOOR_LEN / 2 - 2) && vector.x <= FLOOR_LEN / 2 - 2 && 
-				vector.y >= Block.Size && vector.y <= Block.Size + 2 * blocks.size())
-		{
-			for (Block B : blocks.values())
-			{
-				if (!A.equals(B) && B.isOnPosition(vector))
-					return false;
-			}
-			A.Move(dx, dy);
-			return true;
-		}
-		return false;
-	}
-
-	public boolean Up(Character label)
-	{
-		return Move(label, 0, 2 * Block.Size);
-	}
-
-	public boolean Down(Character label)
-	{
-		return Move(label, 0, -2 * Block.Size);
-	}
-
-	public boolean Left(Character label)
-	{
-		return Move(label, -2 * Block.Size, 0);
-	}
-
-	public boolean Right(Character label)
-	{
-		return Move(label, 2 * Block.Size, 0);
-	}
-
-	public void PickUp(Character A)
-	{
-		while (Up(A))
-		{
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	public void PutDown(Character A, Character B)
-	{
-		if (blocks.get(A).getX() > blocks.get(B).getX())
-			while (blocks.get(A).getX() != blocks.get(B).getX() && Left(A))
-			{
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
+		Block block = _blocks.get(A);
+		float column = 0;
+		if (B == null)
+			while(!isFreeColumn(column))
+				column += Block.SIZE2;	
 		else
-			while (blocks.get(A).getX() != blocks.get(B).getX() && Right(A))
-			{
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		while (Down(A))
+			column = _blocks.get(B).GetX();
+		while (block.GetX() != column)
 		{
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}		
-	}
-
-	public void PutDown(Character A)
-	{
-		while (!isFreeSpace(A) && Left(A))
-		{
+			if (column < block.GetX())
+				MoveLeft(A);
+			else
+				MoveRight(A);
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
-		while (!isFreeSpace(A) && Right(A))
-		{
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-		while (Down(A))
-		{
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}		
 	}
 
-	public Map<Character,Block> getBlocks()
-	{
-		return blocks;
-	}
 
-	public Block getUnder(Block A)
+	public void Stack(Character A, Character B)
 	{
-		if (A.getY() == Block.Size)
-			return null;
-		for (Block B : blocks.values())
-		{
-			if (B.isUnder(A))
-				return B;
-		}
-		return A;
-	}
-
-	public void Memorize()
-	{
-		for (Character label : blocks.keySet())
-		{
-			blocks.get(label).getPosition(memory.get(label));
-		}
-	}
-
-	public void Restore()
-	{
-		for (Character label : blocks.keySet())
-			blocks.get(label).setPosition(memory.get(label));
+		PickUp(A);
+		MoveOver(A, B);
+		PutOn(A, B);
 	}
 }

@@ -3,21 +3,25 @@ package D3;
 import javax.media.j3d.*;
 import javax.vecmath.*;
 
-
-public class Floor extends Shape3D 
+public class FloorTile extends Shape3D 
 {
+	public static final float SIZE = 1f;	
 	private static final int NUM_VERTS = 4;
-	private QuadArray plane;
 
-	public Floor(Point3f p1, Point3f p2, Point3f p3, Point3f p4, Color3f col) 
+	public FloorTile(Color3f col, float x, float z) 
 	{
-		plane = new QuadArray(NUM_VERTS, GeometryArray.COORDINATES | GeometryArray.COLOR_3 );
-		createGeometry(p1, p2, p3, p4, col);
+		Point3f p1 = new Point3f(x, 0, z);
+		Point3f p2 = new Point3f(x + SIZE, 0, z);
+		Point3f p3 = new Point3f(x + SIZE, 0, z + SIZE);
+		Point3f p4 = new Point3f(x, 0, z + SIZE);
+		
+		QuadArray plane = new QuadArray(NUM_VERTS, GeometryArray.COORDINATES | GeometryArray.COLOR_3 );
+		CreateGeometry(plane, p1, p2, p3, p4, col);
 		setGeometry(plane);
-		createAppearance();
+		CreateAppearance();
 	}    
 
-	private void createGeometry(Point3f p1, Point3f p2, Point3f p3, Point3f p4, Color3f col)
+	private void CreateGeometry(QuadArray plane, Point3f p1, Point3f p2, Point3f p3, Point3f p4, Color3f col)
 	{
 		// clockwise point specification
 		plane.setCoordinate(0, p1);
@@ -30,8 +34,7 @@ public class Floor extends Shape3D
 		plane.setColors(0, cols);
 	}
 
-
-	private void createAppearance()
+	private void CreateAppearance()
 	{
 		Appearance app = new Appearance();
 
